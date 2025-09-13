@@ -1,0 +1,15 @@
+FROM node:22
+
+WORKDIR /app
+
+COPY package.json . 
+COPY package-lock.json .
+
+RUN npm install react-scripts --save
+RUN npm install
+
+COPY . .
+
+EXPOSE 3060
+
+CMD ["npm", "start"]
