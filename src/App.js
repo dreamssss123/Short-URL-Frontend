@@ -9,58 +9,65 @@ export default function App() {
   const location = useLocation();
   const [quotes, setQuotes] = useState([]);
   const [flashMessage, setFlashMessage] = useState(null);
+  const [pagin, setpagin] = useState([]);
 
   useEffect(() => {
-    if (location.state && location.state.message) {
-      setFlashMessage({
-        message: location.state.message,
-        type: location.state.type || 'info',
-      });
-    }
-    fetchData();
-
+      if (location.state && location.state.message) {
+        setFlashMessage({
+          message: location.state.message,
+          type: location.state.type || 'info',
+        });
+      }
+  
+      try {
+        const token = localStorage.getItem('token');
+        fetch(process.env.REACT_APP_BACKEND_URL+'/api/auth/user', {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'bearer '+ token,
+            },
+        })
+        .then(res => res.json())
+        .then(data => {
+            console.log(data);
+            if( data.error=='Unauthorized' ){
+              window.location = '/login';
+            }
+        });
+      } catch (err) {
+      
+      }
+  
+      fetchData(1);
+  
   }, [location]);
 
-    const fetchData = async () => {
-        try {
-          const token = localStorage.getItem('token');
-          fetch(process.env.REACT_APP_BACKEND_URL+'/api/auth/user', {
-              method: 'GET',
-              headers: {
-                  'Content-Type': 'application/json',
-                  'Authorization': 'bearer '+ token,
-              },
-          })
-          .then(res => res.json())
-          .then(data => {
-              // console.log('Success:', data);
-              if( data.error=='Unauthorized' ){
-                window.location = '/login';
-              }
-          });
-
-          const resz = await fetch(process.env.REACT_APP_BACKEND_URL+'/api/url/list', {
-              method: 'GET',
-              headers: {
-                  'Content-Type': 'application/json',
-                  'Authorization': 'bearer '+ localStorage.getItem('token'),
-              },
-          })
-          .then(res => res.json())
-          .then(data => {
-              console.log(data);
-              if( data.status===true && data.datas ){
-                setQuotes(data.datas);
-              }
-          });
-
-        } catch (err) {
-        
+  const fetchData = async (page) => {
+    const resz = await fetch(process.env.REACT_APP_BACKEND_URL+'/api/url/list?page='+page, {
+        method: 'GET',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'bearer '+ localStorage.getItem('token'),
+        },
+    })
+    .then(res => res.json())
+    .then(data => {
+        console.log(data);
+        if( data.status===true && data.datas ){
+          setQuotes(data.datas.data);
+          setpagin(data.datas.links);
         }
-    }
+    });
+  }
 
   const closeFlashMess = (e) => {
     setFlashMessage(null);
+  }
+
+  const changePage = (e) => {
+    // console.log(e.currentTarget.getAttribute('data-page'));
+    fetchData(e.currentTarget.getAttribute('data-page'));
   }
 
   const stylesome = {
@@ -156,6 +163,18 @@ export default function App() {
                 )}
               </tbody>
             </table>
+          </div>
+
+          <div className='text-center mt-5'>
+            {pagin.map((item, id) => (
+              <div key={id} className='inline-block mr-1'>
+                {item.label!="&laquo; Previous" && item.label!="Next &raquo;" && (
+                  // <>
+                    <button type="button" className='bg-gray-700 hover:bg-green-700 text-white font-bold py-2 px-4 rounded' onClick={changePage} data-page={item.label} dangerouslySetInnerHTML={{ __html: item.label }} />
+                  // </>
+                )}
+              </div>
+            ))}
           </div>
 
       </div>
